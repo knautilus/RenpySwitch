@@ -2,6 +2,29 @@
 #include <Python.h>
 #include <stdio.h>
 
+char python_error_buffer[0x400];
+
+void show_error(const char* message, int exit)
+{
+    if (exit == 1) {
+        Py_Finalize();
+    }
+    char* first_line = (char*)message;
+    char* end = strchr(message, '\n');
+    if (end != NULL)
+    {
+        first_line = python_error_buffer;
+        memcpy(first_line, message, (end - message) > sizeof(python_error_buffer) ? sizeof(python_error_buffer) : (end - message));
+        first_line[end - message] = '\0';
+    }
+    ErrorSystemConfig c;
+    errorSystemCreate(&c, (const char*)first_line, message);
+    errorSystemShow(&c);
+    if (exit == 1) {
+        Py_Exit(1);
+    }
+}
+
 u64 cur_progid = 0;
 AccountUid userID={0};
 
@@ -155,7 +178,6 @@ void __libnx_initheap(void)
         size = 0x2000000*16;
 
     Result rc = svcSetHeapSize(&addr, size);
-
     if (R_FAILED(rc) || addr==NULL)
         diagAbortWithResult(MAKERESULT(Module_Libnx, LibnxError_HeapAllocFailed));
 
@@ -200,7 +222,6 @@ Result createSaveData()
 
 void userAppInit()
 {
-
     // fsdevUnmountAll();
 
     Result rc=0;
@@ -250,26 +271,6 @@ ConsoleRenderer* getDefaultConsoleRenderer(void)
     return NULL;
 }
 
-char python_error_buffer[0x400];
-
-
-void show_error_and_exit(const char* message)
-{
-    Py_Finalize();
-    char* first_line = (char*)message;
-    char* end = strchr(message, '\n');
-    if (end != NULL)
-    {
-        first_line = python_error_buffer;
-        memcpy(first_line, message, (end - message) > sizeof(python_error_buffer) ? sizeof(python_error_buffer) : (end - message));
-        first_line[end - message] = '\0';
-    }
-    ErrorSystemConfig c;
-    errorSystemCreate(&c, (const char*)first_line, message);
-    errorSystemShow(&c);
-    Py_Exit(1);
-}
-
 
 static AppletHookCookie applet_hook_cookie;
 static void on_applet_hook(AppletHookType hook, void *param)
@@ -286,7 +287,6 @@ static void on_applet_hook(AppletHookType hook, void *param)
          break;
    }
 }
-
 
 
 int main(int argc, char* argv[])
@@ -367,30 +367,33 @@ int main(int argc, char* argv[])
         {"renpy.gl2.gl2texture", initrenpy_gl2_gl2texture},
         {"renpy.uguu.gl", initrenpy_uguu_gl},
         {"renpy.uguu.uguu", initrenpy_uguu_uguu},
-        
+
         {"renpy.lexersupport", initrenpy_lexersupport},
         {"renpy.display.quaternion", initrenpy_display_quaternion},
 
         {NULL, NULL}
     };
 
+    PyImport_ExtendInittab(builtins);
+
+    Py_SetPythonHome("romfs:/Contents/lib.zip");
+
     FILE* sysconfigdata_file = fopen("romfs:/Contents/lib.zip", "rb");
     FILE* renpy_file = fopen("romfs:/Contents/renpy.py", "rb");
 
     if (sysconfigdata_file == NULL)
     {
-        show_error_and_exit("Could not find lib.zip.\n\nPlease ensure that you have extracted the files correctly so that the \"lib.zip\" file is in the same directory as the nsp file.");
+        show_error("Could not find lib.zip.\n\nPlease ensure that you have extracted the files correctly so that the \"lib.zip\" file is in the same directory as the nsp file.", 1);
     }
 
     if (renpy_file == NULL)
     {
-        show_error_and_exit("Could not find renpy.py.\n\nPlease ensure that you have extracted the files correctly so that the \"renpy.py\" file is in the same directory as the nsp file.");
+        show_error("Could not find renpy.py.\n\nPlease ensure that you have extracted the files correctly so that the \"renpy.py\" file is in the same directory as the nsp file.", 1);
     }
 
     fclose(sysconfigdata_file);
+
     Py_InitializeEx(0);
-    Py_SetPythonHome("romfs:/Contents/lib.zip");
-    PyImport_ExtendInittab(builtins);
 
     char* pyargs[] = {
         "romfs:/Contents/renpy.py",
@@ -401,18 +404,18 @@ int main(int argc, char* argv[])
 
     int python_result;
 
-    python_result = PyRun_SimpleString("import sys\nsys.path = ['romfs:/Contents/lib.zip']");
+    python_result = PyRun_SimpleString("import sys; sys.path = ['romfs:/Contents/lib.zip']");
 
     if (python_result == -1)
     {
-        show_error_and_exit("Could not set the Python path.\n\nThis is an internal error and should not occur during normal usage.");
+        show_error("Could not set the Python path.\n\nThis is an internal error and should not occur during normal usage.", 1);
     }
 
 #define x(lib) \
     { \
         if (PyRun_SimpleString("import " lib) == -1) \
         { \
-            show_error_and_exit("Could not import python library " lib ".\n\nPlease ensure that you have extracted the files correctly so that the \"lib\" folder is in the same directory as the nsp file, and that the \"lib\" folder contains the folder \"python2.7\". \nInside that folder, the file \"" lib ".py\" or folder \"" lib "\" needs to exist."); \
+            show_error("Could not import python library " lib ".\n\nPlease ensure that you have extracted the files correctly so that the \"lib\" folder is in the same directory as the nsp file, and that the \"lib\" folder contains the folder \"python2.7\". \nInside that folder, the file \"" lib ".py\" or folder \"" lib "\" needs to exist.", 1); \
         } \
     }
 
@@ -426,7 +429,7 @@ int main(int argc, char* argv[])
 
     if (python_result == -1)
     {
-        show_error_and_exit("An uncaught Python exception occurred during renpy.py execution.\n\nPlease look in the save:// folder for more information about this exception.");
+        show_error("An uncaught Python exception occurred during renpy.py execution.\n\nPlease look in the save:// folder for more information about this exception.", 1);
     }
 
     Py_Exit(0);
