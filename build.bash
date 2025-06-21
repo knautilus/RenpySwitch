@@ -56,6 +56,8 @@ cmake ..
 make
 popd
 popd
+
+mkdir -p ./raw/switch/exefs
 mv ./switch/build/renpy-switch.nso ./raw/switch/exefs/main
 rm -rf switch include source pygame_sdl2-source
 
@@ -65,6 +67,7 @@ mkdir renpy_clear
 cp ./renpy_sdk/*/renpy.sh ./renpy_clear/renpy.sh
 cp -r ./renpy_sdk/*/lib ./renpy_clear/lib
 mkdir ./renpy_clear/game
+cp -r ./renpy-source/module ./renpy_clear/module
 cp -r ./renpy-source/renpy ./renpy_clear/renpy
 cp ./renpy-source/renpy.py ./renpy_clear/renpy.py
 mv ./script.rpy ./renpy_clear/game/script.rpy
@@ -81,7 +84,7 @@ rm -rf private
 mkdir private
 mkdir private/lib
 cp -r renpy_clear/renpy private/renpy
-cp -r renpy_clear/lib/python2.7/ private/lib/python2.7/
+cp -r renpy_clear/lib/python2.7/ private/lib/
 cp renpy_clear/renpy.py private/main.py
 rm -rf private/renpy/common
 python2 generate_private.py
@@ -89,21 +92,20 @@ rm -rf private
 
 
 
-mkdir -p ./raw/switch/romfs/Contents/renpy/common
-mkdir -p ./raw/android/assets/renpy/common
+mkdir -p ./raw/switch/romfs/Contents/renpy
+mkdir -p ./raw/lib
+#mkdir -p ./raw/android/assets/renpy/common
 cp -r ./renpy_clear/renpy/common ./raw/switch/romfs/Contents/renpy/
-cp -r ./renpy_clear/renpy/common ./raw/android/assets/renpy/
-mv private.mp3 ./raw/android/assets
+#cp -r ./renpy_clear/renpy/common ./raw/android/assets/renpy/
+#mv private.mp3 ./raw/android/assets
 cp ./renpy_clear/renpy.py ./raw/switch/romfs/Contents/
-unzip -qq ./raw/lib.zip -d ./raw/lib/
-rm ./raw/lib.zip
-cp -r ./renpy_clear/renpy/ ./raw/lib/renpy/
+#unzip -qq ./raw/lib.zip -d ./raw/lib/
+#rm ./raw/lib.zip
+cp -r ./renpy_clear/lib/python2.7/. ./raw/lib
+cp -r ./renpy_clear/renpy ./raw/lib
 rm -rf ./raw/lib/renpy/common/
 7z a -tzip ./raw/switch/romfs/Contents/lib.zip ./raw/lib/*
 rm -rf ./raw/lib
-rm ./renpy_clear/*.txt
+#rm ./renpy_clear/*.txt
 rm -rf ./renpy_clear/game
-mv ./renpy_clear/ ./raw/renpy_clear/
-7z a -tzip raw.zip ./raw/*
-
-
+mv ./renpy_clear/ ./raw/

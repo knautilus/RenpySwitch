@@ -1852,10 +1852,10 @@ diff -Naur b/renpy.py a/renpy.py
 +    if sys.platform == 'horizon':
 +        return "romfs:/Contents"
 +
-     renpy_base = os.path.dirname(os.path.realpath(sys.argv[0]))
+     renpy_base = os.path.dirname(os.path.abspath(__file__))
      renpy_base = os.path.abspath(renpy_base)
  
-@@ -242,4 +254,10 @@
+@@ -244,4 +256,10 @@
  
  
  if __name__ == "__main__":
@@ -1864,6 +1864,6 @@ diff -Naur b/renpy.py a/renpy.py
 +        main()
 +    except:
 +        if sys.platform == 'horizon':
-+            with open("save://otrh.log", "w") as f:
++            with open("save://exception.log", "w") as f:
 +                import traceback
 +                f.write(traceback.format_exc())
