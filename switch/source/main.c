@@ -162,33 +162,6 @@ PyMODINIT_FUNC initrenpy_uguu_uguu();
 PyMODINIT_FUNC initrenpy_lexersupport();
 PyMODINIT_FUNC initrenpy_display_quaternion();
 
-// Overide the heap initialization function.
-void __libnx_initheap(void)
-{
-    void* addr = NULL;
-    u64 size = 0;
-    u64 mem_available = 0, mem_used = 0;
-
-    svcGetInfo(&mem_available, InfoType_TotalMemorySize, CUR_PROCESS_HANDLE, 0);
-    svcGetInfo(&mem_used, InfoType_UsedMemorySize, CUR_PROCESS_HANDLE, 0);
-
-    if (mem_available > mem_used+0x200000)
-        size = (mem_available - mem_used - 0x200000) & ~0x1FFFFF;
-    if (size == 0)
-        size = 0x2000000*16;
-
-    Result rc = svcSetHeapSize(&addr, size);
-    if (R_FAILED(rc) || addr==NULL)
-        diagAbortWithResult(MAKERESULT(Module_Libnx, LibnxError_HeapAllocFailed));
-
-    extern char* fake_heap_start;
-    extern char* fake_heap_end;
-
-    fake_heap_start = (char*)addr;
-    fake_heap_end   = (char*)addr + size;
-}
-
-
 Result createSaveData()
 {
     NsApplicationControlData g_applicationControlData;
