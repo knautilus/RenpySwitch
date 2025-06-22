@@ -169,6 +169,7 @@ PyMODINIT_FUNC PyInit_renpy_display_quaternion(void);
 
 
 // Overide the heap initialization function.
+/*
 void __libnx_initheap(void)
 {
     void* addr = NULL;
@@ -194,7 +195,7 @@ void __libnx_initheap(void)
     fake_heap_start = (char*)addr;
     fake_heap_end   = (char*)addr + size;
 }
-
+*/
 
 Result createSaveData()
 {
