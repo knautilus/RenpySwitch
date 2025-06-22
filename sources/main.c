@@ -427,6 +427,7 @@ int main(int argc, char* argv[])
 
     fclose(sysconfigdata_file);
 
+    show_error("before Py_InitializeFromConfig", 0);
     status = Py_InitializeFromConfig(&config);
     if (PyStatus_Exception(status)) {
         goto exception;
@@ -442,6 +443,7 @@ int main(int argc, char* argv[])
 
     int python_result;
 
+    show_error("before PyRun_SimpleString", 0);
     python_result = PyRun_SimpleString("import sys; sys.path = ['romfs:/Contents/lib.zip']");
 
     if (python_result == -1)
@@ -449,6 +451,7 @@ int main(int argc, char* argv[])
         show_error("Could not set the Python path.\n\nThis is an internal error and should not occur during normal usage.", 1);
     }
 
+    show_error("before import", 0);
 #define x(lib) \
     { \
         if (PyRun_SimpleString("import " lib) == -1) \
@@ -463,6 +466,7 @@ int main(int argc, char* argv[])
 
 #undef x
 
+    show_error("before PyRun_SimpleFileEx", 0);
     python_result = PyRun_SimpleFileEx(renpy_file, "romfs:/Contents/renpy.py", 1);
 
     if (python_result == -1)
