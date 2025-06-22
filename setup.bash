@@ -18,16 +18,16 @@ pip3 install future six typing requests ecdsa pefile Cython==3.0.12 setuptools
 
 python3 --version
 
-#curl -LOC - https://github.com/knautilus/Utils/releases/download/v1.0/devkitpro-pkgbuild-helpers-2.2.4-2-any.pkg.tar.xz
-curl -LOC - https://github.com/knautilus/Utils/releases/download/v1.0/python39-switch.zip
+curl -LOC - https://github.com/knautilus/Utils/releases/download/v1.0/devkitpro-pkgbuild-helpers-2.2.4-2-any.pkg.tar.xz
+curl -LOC - https://github.com/knautilus/Utils/releases/download/v1.0/python39-switch_t.zip
 curl -LOC - https://github.com/knautilus/Utils/releases/download/v1.0/switch-libfribidi-1.0.12-1-any.pkg.tar.xz
-#dkp-pacman -U --noconfirm devkitpro-pkgbuild-helpers-2.2.4-2-any.pkg.tar.xz
+dkp-pacman -U --noconfirm devkitpro-pkgbuild-helpers-2.2.4-2-any.pkg.tar.xz
 dkp-pacman -U --noconfirm switch-libfribidi-1.0.12-1-any.pkg.tar.xz
-unzip -qq python39-switch.zip -d $DEVKITPRO/portlibs/switch
+unzip -qq python39-switch_t.zip -d $DEVKITPRO/portlibs/switch
 
-#rm devkitpro-pkgbuild-helpers-2.2.4-2-any.pkg.tar.xz
+rm devkitpro-pkgbuild-helpers-2.2.4-2-any.pkg.tar.xz
 rm switch-libfribidi-1.0.12-1-any.pkg.tar.xz
-rm python39-switch.zip
+rm python39-switch_t.zip
 
 /bin/bash -c 'sed -i'"'"'.bak'"'"' '"'"'s/set(CMAKE_EXE_LINKER_FLAGS_INIT "/set(CMAKE_EXE_LINKER_FLAGS_INIT "-fPIC /'"'"' $DEVKITPRO/cmake/Switch.cmake'
 
