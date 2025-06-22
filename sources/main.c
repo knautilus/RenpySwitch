@@ -169,7 +169,6 @@ PyMODINIT_FUNC PyInit_renpy_display_quaternion(void);
 
 
 // Overide the heap initialization function.
-/*
 void __libnx_initheap(void)
 {
     void* addr = NULL;
@@ -195,7 +194,7 @@ void __libnx_initheap(void)
     fake_heap_start = (char*)addr;
     fake_heap_end   = (char*)addr + size;
 }
-*/
+
 
 Result createSaveData()
 {
@@ -313,16 +312,24 @@ int main(int argc, char* argv[])
     PyStatus status;
     PyConfig config;
 
-    PyConfig_InitPythonConfig(&config);
-    config.site_import = 0;
+    _PyConfig_InitCompatConfig(&config);
+    config.isolated = 0;
     config.use_environment = 0;
-    config.user_site_directory = 0;
-    config.write_bytecode = 0;
+    config.site_import = 0;
+    config.bytes_warning = 0;
+    config.inspect = 0;
+    config.interactive = 0;
     config.optimization_level = 2;
+    config.parser_debug= 0;
+    config.write_bytecode = 0;
+    config.verbose = 0;
+    config.quiet = 0;
+    config.user_site_directory = 0;
+    config.buffered_stdio = 1;
+    config.pathconfig_warnings = 1;
     //config.parse_argv = 1;
-    config.module_search_paths_set = 1;
-    config.configure_c_stdio = 0;
     config.install_signal_handlers = 0;
+    config.module_search_paths_set = 1;
     config.filesystem_encoding = L"utf-8";
     //config.pythonpath_env = L"romfs:/Contents/lib.zip";
     config.home = L"romfs:/Contents/lib.zip";
