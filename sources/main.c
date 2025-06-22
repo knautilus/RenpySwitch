@@ -321,7 +321,7 @@ int main(int argc, char* argv[])
     //config.parse_argv = 1;
     config.module_search_paths_set = 1;
     config.filesystem_encoding = L"utf-8";
-    config.pythonpath_env = L"romfs:/Contents/lib.zip";
+    //config.pythonpath_env = L"romfs:/Contents/lib.zip";
     config.home = L"romfs:/Contents/lib.zip";
     config._use_peg_parser = 0;
 
@@ -332,12 +332,6 @@ int main(int argc, char* argv[])
     }
 
     //config.install_signal_handlers = 0;
-
-    //config.use_environment = 0;
-    //config.user_site_directory = 0;
-    //config.write_bytecode = 0;
-    //config.optimization_level = 2;
-    //config.parse_argv = 1;
     //config.argv = argv_list;
     //config.program_name = L"python3";
 
@@ -447,7 +441,6 @@ int main(int argc, char* argv[])
 
     int python_result;
 
-    //python_result = MyRun_SimpleStringFlags("import sys; sys.path = ['romfs:/Contents/lib.zip']", NULL);
     python_result = PyRun_SimpleString("import sys; sys.path = ['romfs:/Contents/lib.zip']");
 
     if (python_result == -1)
