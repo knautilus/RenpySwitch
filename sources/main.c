@@ -321,10 +321,10 @@ int main(int argc, char* argv[])
     config.optimization_level = 2;
     //config.parse_argv = 1;
     config.module_search_paths_set = 1;
+    config.install_signal_handlers = 0;
     config.filesystem_encoding = L"utf-8";
     //config.pythonpath_env = L"romfs:/Contents/lib.zip";
     config.home = L"romfs:/Contents/lib.zip";
-    config._use_peg_parser = 0;
 
     status = PyWideStringList_Append(&config.module_search_paths,
                                      L"romfs:/Contents/lib.zip");
@@ -332,7 +332,6 @@ int main(int argc, char* argv[])
         goto exception;
     }
 
-    //config.install_signal_handlers = 0;
     //config.argv = argv_list;
     //config.program_name = L"python3";
 
