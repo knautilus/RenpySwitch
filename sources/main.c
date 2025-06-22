@@ -321,6 +321,7 @@ int main(int argc, char* argv[])
     config.optimization_level = 2;
     //config.parse_argv = 1;
     config.module_search_paths_set = 1;
+    config.configure_c_stdio = 0;
     config.install_signal_handlers = 0;
     config.filesystem_encoding = L"utf-8";
     //config.pythonpath_env = L"romfs:/Contents/lib.zip";
