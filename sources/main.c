@@ -40,24 +40,35 @@ static PyObject* commitsave(PyObject* self, PyObject* args)
 
     FsSaveDataInfoReader reader;
     FsSaveDataInfo info;
-    s64 total_entries=0;
-    Result rc=0;
+    s64 total_entries = 0;
+    Result rc = 0;
 
     fsdevCommitDevice("save");
     fsFsGetTotalSpace(FsSave, "/", &total_size);
     fsFsGetFreeSpace(FsSave, "/", &free_size);
-    if (free_size < 0x800000) {
+    if (free_size < 0x800000)
+    {
         u64 new_size = total_size + 0x800000;
 
         fsdevUnmountDevice("save");
         fsOpenSaveDataInfoReader(&reader, FsSaveDataSpaceId_User);
 
-        while(1) {
+        while (1)
+        {
             rc = fsSaveDataInfoReaderRead(&reader, &info, 1, &total_entries);
-            if (R_FAILED(rc) || total_entries==0) break;
+            if (R_FAILED(rc) || total_entries == 0)
+                break;
 
-            if (info.save_data_type == FsSaveDataType_Account && userID.uid[0] == info.uid.uid[0] && userID.uid[1] == info.uid.uid[1] && info.application_id == cur_progid) {
-                fsExtendSaveDataFileSystem(info.save_data_space_id, info.save_data_id, new_size, 0x400000);
+            if (info.save_data_type == FsSaveDataType_Account &&
+                userID.uid[0] == info.uid.uid[0] &&
+                userID.uid[1] == info.uid.uid[1] &&
+                info.application_id == cur_progid)
+            {
+                fsExtendSaveDataFileSystem(
+                    info.save_data_space_id,
+                    info.save_data_id,
+                    new_size,
+                    0x400000);
                 break;
             }
         }
@@ -178,14 +189,14 @@ void __libnx_initheap(void)
     svcGetInfo(&mem_available, InfoType_TotalMemorySize, CUR_PROCESS_HANDLE, 0);
     svcGetInfo(&mem_used, InfoType_UsedMemorySize, CUR_PROCESS_HANDLE, 0);
 
-    if (mem_available > mem_used+0x200000)
+    if (mem_available > mem_used + 0x200000)
         size = (mem_available - mem_used - 0x200000) & ~0x1FFFFF;
     if (size == 0)
-        size = 0x2000000*16;
+        size = 0x2000000*16; // 256 MB fallback
 
     Result rc = svcSetHeapSize(&addr, size);
 
-    if (R_FAILED(rc) || addr==NULL)
+    if (R_FAILED(rc) || addr == NULL)
         diagAbortWithResult(MAKERESULT(Module_Libnx, LibnxError_HeapAllocFailed));
 
     extern char* fake_heap_start;
@@ -298,6 +309,8 @@ static void on_applet_hook(AppletHookType hook, void *param)
 
 int main(int argc, char* argv[])
 {
+    chdir("romfs:/Contents");
+    setlocale(LC_ALL, "C");
     setenv("MESA_NO_ERROR", "1", 1);
 
     appletLockExit();
@@ -312,36 +325,58 @@ int main(int argc, char* argv[])
     PyStatus status;
     PyConfig config;
 
-    _PyConfig_InitCompatConfig(&config);
+    PyConfig_InitPythonConfig(&config);
+
+    status = PyConfig_SetString(&config, &config.home, L"romfs:/Contents");
+    if (PyStatus_Exception(status))
+        goto exception;
+
+    status = PyConfig_SetString(&config, &config.prefix, L"romfs:/Contents");
+    if (PyStatus_Exception(status))
+        goto exception;
+
+    status = PyConfig_SetString(&config, &config.exec_prefix, L"romfs:/Contents");
+    if (PyStatus_Exception(status))
+        goto exception;
+
+    /* Добавляем путь к корневой папке renpy/common */
+    PyWideStringList_Append(
+        &config.module_search_paths,
+        L"romfs:/Contents/renpy/common"
+    );
     config.isolated = 0;
     config.use_environment = 0;
     config.site_import = 0;
-    config.bytes_warning = 0;
-    config.inspect = 0;
-    config.interactive = 0;
-    config.optimization_level = 2;
-    config.parser_debug= 0;
-    config.write_bytecode = 0;
-    config.verbose = 0;
-    config.quiet = 0;
     config.user_site_directory = 0;
-    config.buffered_stdio = 1;
-    config.pathconfig_warnings = 1;
-    //config.parse_argv = 1;
-    config.install_signal_handlers = 0;
-    config.module_search_paths_set = 1;
-    config.filesystem_encoding = L"utf-8";
-    //config.pythonpath_env = L"romfs:/Contents/lib.zip";
-    config.home = L"romfs:/Contents/lib.zip";
+    config.write_bytecode = 0;
+    config.optimization_level = 2;
+    config.verbose = 0;
 
-    status = PyWideStringList_Append(&config.module_search_paths,
-                                     L"romfs:/Contents/lib.zip");
-    if (PyStatus_Exception(status)) {
+    status = PyConfig_SetString(&config,
+                                &config.filesystem_errors,
+                                L"surrogateescape");
+    if (PyStatus_Exception(status))
         goto exception;
-    }
 
-    //config.argv = argv_list;
-    //config.program_name = L"python3";
+    /* ---- stdlib: ONLY lib.zip ---- */
+    config.module_search_paths_set = 1;
+
+    status = PyWideStringList_Append(
+        &config.module_search_paths,
+        L"romfs:/Contents/lib.zip"
+    );
+    if (PyStatus_Exception(status))
+        goto exception;
+
+    /* ---- argv ---- */
+    wchar_t* pyargv[] = {
+        L"romfs:/Contents/renpy.py",
+        NULL
+    };
+    status = PyConfig_SetArgv(&config, 1, pyargv);
+    if (PyStatus_Exception(status)) goto exception;
+
+    Py_SetProgramName(L"RenPy3.8.7");
 
     static struct _inittab builtins[] = {
 
@@ -416,42 +451,33 @@ int main(int argc, char* argv[])
 
     PyImport_ExtendInittab(builtins);
 
-    //show_error("before Py_SetPythonHome", 0);
-    //Py_SetPythonHome(L"romfs:/Contents/lib.zip");
+    /* ---- Sanity check ---- */
+    FILE* libzip = fopen("romfs:/Contents/lib.zip", "rb");
+    if (!libzip) {
+        show_error("Could not find lib.zip");
+    }
+    fclose(libzip);
 
-    FILE* sysconfigdata_file = fopen("romfs:/Contents/lib.zip", "rb");
     FILE* renpy_file = fopen("romfs:/Contents/renpy.py", "rb");
-
-    if (sysconfigdata_file == NULL)
-    {
-        show_error("Could not find lib.zip.\n\nPlease ensure that you have extracted the files correctly so that the \"lib.zip\" file is in the same directory as the nsp file.", 1);
+    if (!renpy_file) {
+        show_error("Could not find renpy.py");
     }
-
-    if (renpy_file == NULL)
-    {
-        show_error("Could not find renpy.py.\n\nPlease ensure that you have extracted the files correctly so that the \"renpy.py\" file is in the same directory as the nsp file.", 1);
-    }
-
-    fclose(sysconfigdata_file);
 
     show_error("before Py_InitializeFromConfig", 0);
     status = Py_InitializeFromConfig(&config);
-    if (PyStatus_Exception(status)) {
+    if (PyStatus_Exception(status))
         goto exception;
-    }
+
     PyConfig_Clear(&config);
 
-    wchar_t* pyargs[] = {
-        L"romfs:/Contents/renpy.py",
-        NULL,
-    };
-
-    PySys_SetArgvEx(1, pyargs, 1);
+    PyRun_SimpleString("import pygame_sdl2");
 
     int python_result;
 
-    show_error("before PyRun_SimpleString", 0);
-    python_result = PyRun_SimpleString("import sys; sys.path = ['romfs:/Contents/lib.zip']");
+    python_result = PyRun_SimpleString(
+      "import sys\n"
+      "sys.path.insert(0, 'romfs:/Contents/lib.zip')\n"
+    );
 
     if (python_result == -1)
     {
@@ -463,7 +489,7 @@ int main(int argc, char* argv[])
     { \
         if (PyRun_SimpleString("import " lib) == -1) \
         { \
-            show_error("Could not import python library " lib ".\n\nPlease ensure that you have extracted the files correctly so that the \"lib\" folder is in the same directory as the nsp file, and that the \"lib\" folder contains the folder \"python2.7\". \nInside that folder, the file \"" lib ".py\" or folder \"" lib "\" needs to exist.", 1); \
+            show_error("Could not import python library " lib ".\n\nPlease ensure that you have extracted the files correctly so that the \"lib\" folder is in the same directory as the nsp file, and that the \"lib\" folder contains the folder \"python3.9\". \nInside that folder, the file \"" lib ".py\" or folder \"" lib "\" needs to exist.", 1); \
         } \
     }
 
@@ -473,10 +499,15 @@ int main(int argc, char* argv[])
 
 #undef x
 
-    show_error("before PyRun_SimpleFileEx", 0);
-    python_result = PyRun_SimpleFileEx(renpy_file, "romfs:/Contents/renpy.py", 1);
+    show_error("before PyRun_SimpleFileEx renpy", 0);
 
-    if (python_result == -1)
+    python_result = PyRun_SimpleFileEx(
+        renpy_file,
+        "romfs:/Contents/renpy.py",
+        1
+    );
+
+    if (python_result != 0)
     {
         show_error("An uncaught Python exception occurred during renpy.py execution.\n\nPlease look in the save:// folder for more information about this exception.", 1);
     }
