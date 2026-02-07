@@ -1,6 +1,7 @@
 #include <switch.h>
 #include <Python.h>
 #include <stdio.h>
+#include <locale.h>
 
 u64 cur_progid = 0;
 AccountUid userID = {0};
@@ -68,7 +69,8 @@ static PyObject* commitsave(PyObject* self, PyObject* args)
                     info.save_data_space_id,
                     info.save_data_id,
                     new_size,
-                    0x400000);
+                    0x400000
+                );
                 break;
             }
         }
@@ -454,13 +456,13 @@ int main(int argc, char* argv[])
     /* ---- Sanity check ---- */
     FILE* libzip = fopen("romfs:/Contents/lib.zip", "rb");
     if (!libzip) {
-        show_error("Could not find lib.zip");
+        show_error("Could not find lib.zip", 1);
     }
     fclose(libzip);
 
     FILE* renpy_file = fopen("romfs:/Contents/renpy.py", "rb");
     if (!renpy_file) {
-        show_error("Could not find renpy.py");
+        show_error("Could not find renpy.py", 1);
     }
 
     show_error("before Py_InitializeFromConfig", 0);
@@ -501,11 +503,7 @@ int main(int argc, char* argv[])
 
     show_error("before PyRun_SimpleFileEx renpy", 0);
 
-    python_result = PyRun_SimpleFileEx(
-        renpy_file,
-        "romfs:/Contents/renpy.py",
-        1
-    );
+    python_result = PyRun_SimpleFileEx(renpy_file, "romfs:/Contents/renpy.py", 1);
 
     if (python_result != 0)
     {
